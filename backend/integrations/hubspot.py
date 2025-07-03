@@ -96,43 +96,39 @@ async def get_hubspot_credentials(user_id, org_id):
     if not credentials:
         raise HTTPException(status_code=400, detail='No credentials found.')
     await delete_key_redis(f'hubspot_credentials:{org_id}:{user_id}')
-
     return credentials
 
-def create_hubspot_integration_item(item_data: dict, item_type: str) -> IntegrationItem:
-    """Create an integration item from HubSpot API response"""
+async def get_items_hubspot(credentials) -> list[IntegrationItem]:
+
+    """Fetch all HubSpot items (contacts, companies, deals, tickets)"""
+    credentials = json.loads(credentials)
+    access_token = credentials.get('access_token')
     
-    # Get the item ID
-    item_id = item_data.get('id')
+    if not access_token:
+        raise HTTPException(status_code=400, detail='No access token found')
     
-    # Extract name based on item type
-    properties = item_data.get('properties', {})
-    if item_type == 'contact':
-        name = f"{properties.get('firstname', '')} {properties.get('lastname', '')}".strip()
-        if not name:
-            name = properties.get('email', f'Contact {item_id}')
-    elif item_type == 'company':
-        name = properties.get('name', f'Company {item_id}')
-    elif item_type == 'deal':
-        name = properties.get('dealname', f'Deal {item_id}')
-    elif item_type == 'ticket':
-        name = properties.get('subject', f'Ticket {item_id}')
-    else:
-        name = f'{item_type.capitalize()} {item_id}'
+    all_items = []
     
-    # Extract timestamps
-    created_at = properties.get('createdate')
-    updated_at = properties.get('lastmodifieddate') or properties.get('hs_lastmodifieddate')
+    # Define the endpoints and their corresponding types
+    endpoints = [
+        ('contacts', 'contact'),
+        ('companies', 'company'),
+        ('deals', 'deal'),
+        ('tickets', 'ticket')
+    ]
     
-    return IntegrationItem(
-        id=f'hubspot_{item_type}_{item_id}',
-        name=name,
-        type=item_type,
-        creation_time=created_at,
-        last_modified_time=updated_at,
-        parent_id=None,
-        parent_path_or_name='HubSpot'
-    )
+    # Fetch data from each endpoint
+    for endpoint, item_type in endpoints:
+        try:
+            items = await fetch_hubspot_data(access_token, endpoint, item_type)
+            all_items.extend(items)
+            print(f"Fetched {len(items)} {item_type}s from HubSpot")
+        except Exception as e:
+            print(f"Error fetching {item_type}s: {str(e)}")
+            continue
+    
+    print(f"Total HubSpot items fetched: {len(all_items)}")
+    return all_items
 
 async def fetch_hubspot_data(access_token: str, endpoint: str, item_type: str) -> list:
     """Fetch data from HubSpot API endpoint"""
@@ -171,33 +167,37 @@ async def fetch_hubspot_data(access_token: str, endpoint: str, item_type: str) -
     
     return all_items
 
-async def get_items_hubspot(credentials) -> list[IntegrationItem]:
-    """Fetch all HubSpot items (contacts, companies, deals, tickets)"""
-    credentials = json.loads(credentials)
-    access_token = credentials.get('access_token')
+def create_hubspot_integration_item(item_data: dict, item_type: str) -> IntegrationItem:
+    """Create an integration item from HubSpot API response"""
     
-    if not access_token:
-        raise HTTPException(status_code=400, detail='No access token found')
+    # Get the item ID
+    item_id = item_data.get('id')
     
-    all_items = []
+    # Extract name based on item type
+    properties = item_data.get('properties', {})
+    if item_type == 'contact':
+        name = f"{properties.get('firstname', '')} {properties.get('lastname', '')}".strip()
+        if not name:
+            name = properties.get('email', f'Contact {item_id}')
+    elif item_type == 'company':
+        name = properties.get('name', f'Company {item_id}')
+    elif item_type == 'deal':
+        name = properties.get('dealname', f'Deal {item_id}')
+    elif item_type == 'ticket':
+        name = properties.get('subject', f'Ticket {item_id}')
+    else:
+        name = f'{item_type.capitalize()} {item_id}'
     
-    # Define the endpoints and their corresponding types
-    endpoints = [
-        ('contacts', 'contact'),
-        ('companies', 'company'),
-        ('deals', 'deal'),
-        ('tickets', 'ticket')
-    ]
+    # Extract timestamps
+    created_at = properties.get('createdate')
+    updated_at = properties.get('lastmodifieddate') or properties.get('hs_lastmodifieddate')
     
-    # Fetch data from each endpoint
-    for endpoint, item_type in endpoints:
-        try:
-            items = await fetch_hubspot_data(access_token, endpoint, item_type)
-            all_items.extend(items)
-            print(f"Fetched {len(items)} {item_type}s from HubSpot")
-        except Exception as e:
-            print(f"Error fetching {item_type}s: {str(e)}")
-            continue
-    
-    print(f"Total HubSpot items fetched: {len(all_items)}")
-    return all_items
+    return IntegrationItem(
+        id=f'hubspot_{item_type}_{item_id}',
+        name=name,
+        type=item_type,
+        creation_time=created_at,
+        last_modified_time=updated_at,
+        parent_id=None,
+        parent_path_or_name='HubSpot'
+    )

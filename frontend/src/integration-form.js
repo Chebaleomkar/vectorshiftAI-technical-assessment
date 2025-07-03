@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import {
     Box,
-    Button,
     Typography,
-    Card,
-    CardContent,
-    Grid,
     TextField,
     Autocomplete,
     Paper,
@@ -35,8 +31,9 @@ export const IntegrationForm = () => {
             justifyContent='center'
             alignItems='center'
             flexDirection='column'
-            sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8', padding: 4 }}
+            sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8', padding: 4 }} 
         >
+            <h1>VectorShift </h1>
             <Paper elevation={4} sx={{ padding: 4, width: '100%', maxWidth: 600, borderRadius: 4 }}>
                 <Typography variant='h5' gutterBottom display='flex' alignItems='center' gap={1}>
                     <Plug size={24} /> Connect an Integration
