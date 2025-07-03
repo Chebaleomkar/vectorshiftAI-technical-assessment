@@ -1,0 +1,28 @@
+# Node.js (frontend)
+frontend/node_modules/
+frontend/.next/
+frontend/.env
+frontend/.env.local
+frontend/.eslintcache
+
+# Python (backend)
+backend/__pycache__/
+backend/integrations/__pycache__/
+backend/.env
+backend/.vscode/
+backend/.mypy_cache/
+backend/.pytest_cache/
+backend/venv/
+backend/.DS_Store
+
+# Common
+*.log
+*.pyc
+*.pyo
+*.pyd
+.env.*
+dist/
+build/
+.idea/
+*.sqlite3
+*.zip
